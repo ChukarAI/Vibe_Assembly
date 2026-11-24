@@ -1651,35 +1651,52 @@ fn model_blurb(id: &str) -> &'static str {
     }
 }
 
-/// Combos sit first, their `va_` routing prefix stripped for display; direct
-/// models follow, sorted by id.
+fn combo_choice(id: &str, label: &str, blurb: &str) -> ModelChoice {
+    ModelChoice {
+        id: id.to_string(),
+        label: label.to_string(),
+        blurb: blurb.to_string(),
+        combo: true,
+        local: false,
+        backend: None,
+        endpoint: None,
+    }
+}
+
+/// Combos sit first, with the router's `va_` routing prefix stripped; direct
+/// models follow, sorted by id. Duplicate ids keep the first catalogue entry.
 fn catalog_from_ids(ids: Vec<String>) -> Vec<ModelChoice> {
+    let mut seen = HashSet::new();
+    let ids: Vec<String> = ids
+        .into_iter()
+        .filter(|id| seen.insert(id.clone()))
+        .collect();
     let mut combos = Vec::new();
     let mut direct = Vec::new();
     for id in ids {
-        if let Some(label) = id.strip_prefix("va_") {
-            combos.push(ModelChoice {
-                id: id.clone(),
-                label: label.to_string(),
-                blurb: "Router combo".to_string(),
-                combo: true,
-                local: false,
-                backend: None,
-                endpoint: None,
-            });
-        } else {
-            direct.push(ModelChoice {
-                id: id.clone(),
+        match id.as_str() {
+            "daily-free" => combos.push(combo_choice(
+                &id,
+                "Daily Free",
+                "$0 · router daily-free chain",
+            )),
+            "free" => combos.push(combo_choice(&id, "Daily Free", "$0 · router free alias")),
+            _ if id.starts_with("va_") => {
+                let label = id.trim_start_matches("va_");
+                combos.push(combo_choice(&id, label, "Router combo"));
+            }
+            _ => direct.push(ModelChoice {
                 label: id.clone(),
                 blurb: model_blurb(&id).to_string(),
+                id,
                 combo: false,
                 local: false,
                 backend: None,
                 endpoint: None,
-            });
+            }),
         }
     }
-    combos.sort_by(|a, b| a.label.cmp(&b.label));
+    combos.sort_by_key(|choice| (choice.id != "daily-free", choice.label.clone()));
     direct.sort_by(|a, b| a.label.cmp(&b.label));
     combos.extend(direct);
     combos
@@ -8856,6 +8873,42 @@ mod tests {
         assert_eq!(catalog[3].label, "gpt-5.1-codex");
         assert_eq!(model_blurb("gpt-5.1-codex"), "OpenAI coding model");
         assert!(catalog_from_ids(Vec::new()).is_empty());
+    }
+
+    #[test]
+    fn daily_free_combos_lead_and_duplicate_ids_are_removed() {
+        let catalog = catalog_from_ids(vec![
+            "qwen3-8b".to_string(),
+            "free".to_string(),
+            "va_auto-combo".to_string(),
+            "daily-free".to_string(),
+            "free".to_string(),
+            "qwen3-8b".to_string(),
+        ]);
+        assert_eq!(catalog.len(), 4);
+        assert_eq!(catalog[0].id, "daily-free");
+        assert!(catalog[0].combo);
+        assert_eq!(catalog[0].label, "Daily Free");
+        assert_eq!(catalog[0].blurb, "$0 · router daily-free chain");
+        assert_eq!(catalog[1].id, "free");
+        assert!(catalog[1].combo);
+        assert_eq!(catalog[1].label, "Daily Free");
+        assert_eq!(catalog[1].blurb, "$0 · router free alias");
+        assert_eq!(catalog[2].id, "va_auto-combo");
+        assert_eq!(catalog[3].id, "qwen3-8b");
+        assert!(!catalog[3].combo);
+    }
+
+    #[test]
+    fn free_alias_leads_when_daily_free_is_not_listed() {
+        let catalog = catalog_from_ids(vec![
+            "claude-sonnet-4.6".to_string(),
+            "va_auto-combo".to_string(),
+            "free".to_string(),
+        ]);
+        assert_eq!(catalog[0].id, "free");
+        assert!(catalog[0].combo);
+        assert_eq!(catalog[0].blurb, "$0 · router free alias");
     }
 
     fn local_node(models: &[&str], backend: &str, lan: bool, host: &str) -> LocalNodeStatus {

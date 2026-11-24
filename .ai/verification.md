@@ -1,16 +1,27 @@
 # Verification Record & Proven Baselines
 
-**Current feature proven:** v2.5.2 hardening - non-polluting Git review
-checkpoints, tree-vs-tree unborn/deletion diffs, hunk-aware unified-diff parsing,
-Windows drive-letter diagnostic paths, portable-path boundaries, role-best
-auto-combo gap filling, and template reset write-error propagation
+**Current feature proven:** v2.5.3 CI, desktop CLI, and router alignment -
+GitHub Actions Windows/headless-Linux jobs, early desktop version/help exits,
+fail-closed desktop flag parsing, credential-based auth reporting, and
+`daily-free` / `free` combo prioritization with deduplication
 
 **Test suites and checks executed:**
 
 - [x] `cargo fmt --all -- --check`
 - [x] `cargo clippy --workspace --all-targets -- -D warnings`
-- [x] `cargo test --workspace` - 298 passed, 0 failed
+- [x] `cargo test --workspace` - 305 passed, 0 failed
 - [x] `cargo build --release` - `vibe-assembly` and `vibe-assembly-desktop`
+- [x] GitHub Actions CI workflow - Windows full workspace with Bash, stable
+      Rust fmt/clippy, rust-cache, unlimited stack, release build and both
+      executable `--version` smoke tests; Linux headless checks/tests/build for
+      `va-core`, `va-harness`, and `va-cli` without GPUI desktop
+- [x] Desktop argument parser - `--version`, `-V`, `--help`, `-h`,
+      `--workbench --root .`, positional root, unknown flags, missing values,
+      and complete help option coverage
+- [x] Router `up` authentication reporting - configured credentials versus
+      open local mode based on `auth.is_empty()`; no token-sync claim
+- [x] `daily-free` and `free` catalogue entries are combos first with honest
+      `$0` blurbs, and duplicate ids are removed
 - [x] Review checkpoint preserves branch HEAD, commit count, real index, and
       working-tree status; checkpoints work on unborn branches
 - [x] Review tree-vs-tree diffs include all deletions to an empty worktree and

@@ -29,39 +29,110 @@ use va_core::state::Workspace;
 
 use crate::state::{Workbench, WorkbenchState};
 
-fn main() {
-    // Discovery order: `--root`, a positional path, then the current directory.
-    let mut start: Option<PathBuf> = None;
-    let mut sample: Option<Sample> = None;
-    let mut workbench = false;
-    let mut args = std::env::args().skip(1);
+#[derive(Debug, Default, PartialEq, Eq)]
+struct DesktopArgs {
+    start: Option<PathBuf>,
+    sample: Option<Sample>,
+    workbench: bool,
+    mode: Option<String>,
+    lang: Option<String>,
+    model: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum DesktopAction {
+    Launch(DesktopArgs),
+    Version,
+    Help,
+}
+
+const DESKTOP_HELP: &str = "Vibe Assembly desktop
+
+Usage:
+  vibe-assembly-desktop [OPTIONS] [ROOT]
+
+Options:
+      --design-preview             Open the Obsidian design preview
+      --design-preview-friendly    Open the Paper & Ink preview
+      --design-preview-midnight    Open the Midnight preview
+      --design-preview-studio      Open the Studio preview
+      --design-preview-glass       Open the Liquid Glass preview
+      --workbench                  Open the workspace editor workbench
+      --root <PATH>                Workspace root (discovered upward)
+      --mode <MODE>                Initial mode: code, web, chat, debug
+      --lang <LANG>                Initial language: auto, rust, c, python, ts, go
+      --model <MODEL>              Initial router model or combo
+  -h, --help                       Print this help and exit
+  -V, --version                    Print version and exit";
+
+fn option_value(args: &mut impl Iterator<Item = String>, option: &str) -> Result<String, String> {
+    let Some(value) = args.next() else {
+        return Err(format!("{option} requires a value"));
+    };
+    if value.starts_with('-') || value.is_empty() {
+        return Err(format!("{option} requires a value"));
+    }
+    Ok(value)
+}
+
+fn parse_desktop_args(args: impl IntoIterator<Item = String>) -> Result<DesktopAction, String> {
+    let mut parsed = DesktopArgs::default();
+    let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         match arg.as_str() {
-            "--design-preview" => sample = Some(Sample::Obsidian),
-            "--design-preview-friendly" => sample = Some(Sample::Paper),
-            "--design-preview-midnight" => sample = Some(Sample::Midnight),
-            "--design-preview-studio" => sample = Some(Sample::Studio),
-            "--design-preview-glass" => sample = Some(Sample::Glass),
-            "--workbench" => workbench = true,
-            "--root" => start = args.next().map(PathBuf::from),
+            "-V" | "--version" => return Ok(DesktopAction::Version),
+            "-h" | "--help" => return Ok(DesktopAction::Help),
+            "--design-preview" => parsed.sample = Some(Sample::Obsidian),
+            "--design-preview-friendly" => parsed.sample = Some(Sample::Paper),
+            "--design-preview-midnight" => parsed.sample = Some(Sample::Midnight),
+            "--design-preview-studio" => parsed.sample = Some(Sample::Studio),
+            "--design-preview-glass" => parsed.sample = Some(Sample::Glass),
+            "--workbench" => parsed.workbench = true,
+            "--root" => {
+                let value = option_value(&mut args, "--root")?;
+                parsed.start = Some(PathBuf::from(value));
+            }
             "--mode" => {
-                if let Some(value) = args.next() {
-                    std::env::set_var("VIBE_MODE", value);
-                }
+                parsed.mode = Some(option_value(&mut args, "--mode")?);
             }
             "--lang" => {
-                if let Some(value) = args.next() {
-                    std::env::set_var("VIBE_LANG", value);
-                }
+                parsed.lang = Some(option_value(&mut args, "--lang")?);
             }
             "--model" => {
-                if let Some(value) = args.next() {
-                    std::env::set_var("VIBE_MODEL", value);
-                }
+                parsed.model = Some(option_value(&mut args, "--model")?);
             }
-            other if !other.starts_with('-') => start = Some(PathBuf::from(other)),
-            _ => {}
+            other if other.starts_with('-') => return Err(format!("unknown option '{other}'")),
+            other => parsed.start = Some(PathBuf::from(other)),
         }
+    }
+    Ok(DesktopAction::Launch(parsed))
+}
+
+fn main() {
+    let args = parse_desktop_args(std::env::args().skip(1)).unwrap_or_else(|error| {
+        eprintln!("vibe-assembly-desktop: {error}\nTry '--help' for usage.");
+        std::process::exit(2);
+    });
+    let args = match args {
+        DesktopAction::Version => {
+            println!("vibe-assembly-desktop {}", env!("CARGO_PKG_VERSION"));
+            return;
+        }
+        DesktopAction::Help => {
+            println!("{DESKTOP_HELP}");
+            return;
+        }
+        DesktopAction::Launch(args) => args,
+    };
+
+    if let Some(mode) = args.mode {
+        std::env::set_var("VIBE_MODE", mode);
+    }
+    if let Some(lang) = args.lang {
+        std::env::set_var("VIBE_LANG", lang);
+    }
+    if let Some(model) = args.model {
+        std::env::set_var("VIBE_MODEL", model);
     }
 
     let mode = std::env::var("VIBE_MODE")
@@ -69,14 +140,14 @@ fn main() {
         .and_then(|value| value.parse::<ExecutionMode>().ok())
         .unwrap_or(ExecutionMode::Code);
 
-    if let Some(sample) = sample {
+    if let Some(sample) = args.sample {
         run_preview(mode, sample);
         return;
     }
 
     // A bare launch opens the Liquid Glass surface; the workspace workbench
     // needs an explicit `--workbench` or a root path because it requires a repo.
-    if !workbench && start.is_none() {
+    if !args.workbench && args.start.is_none() {
         run_preview_shipped(mode);
         return;
     }
@@ -87,8 +158,9 @@ fn main() {
         .unwrap_or(LanguageLens::Auto);
     let model = std::env::var("VIBE_MODEL").unwrap_or_else(|_| "auto-combo".to_string());
 
-    let start =
-        start.unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+    let start = args
+        .start
+        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
 
     match Workspace::discover(&start) {
         Some(root) => run(Workspace::load(&root), None, mode, language, model),
@@ -143,7 +215,7 @@ fn run(
         });
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Sample {
     Obsidian,
     Paper,
@@ -220,4 +292,93 @@ fn run_preview_window(mode: ExecutionMode, sample: Sample, title: &'static str) 
 
             cx.activate(true);
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    fn args(values: &[&str]) -> Vec<String> {
+        values.iter().map(|value| (*value).to_string()).collect()
+    }
+
+    #[test]
+    fn desktop_version_flags_exit_before_launch() {
+        for flag in ["--version", "-V"] {
+            assert!(matches!(
+                parse_desktop_args(args(&[flag])),
+                Ok(DesktopAction::Version)
+            ));
+        }
+    }
+
+    #[test]
+    fn desktop_help_flags_exit_before_launch() {
+        for flag in ["--help", "-h"] {
+            assert!(matches!(
+                parse_desktop_args(args(&[flag])),
+                Ok(DesktopAction::Help)
+            ));
+        }
+        for option in [
+            "--design-preview",
+            "--design-preview-friendly",
+            "--design-preview-midnight",
+            "--design-preview-studio",
+            "--design-preview-glass",
+            "--workbench",
+            "--root",
+            "--mode",
+            "--lang",
+            "--model",
+        ] {
+            assert!(DESKTOP_HELP.contains(option), "missing help for {option}");
+        }
+    }
+
+    #[test]
+    fn desktop_workbench_root_and_positional_root_parse() {
+        let Ok(DesktopAction::Launch(parsed)) =
+            parse_desktop_args(args(&["--workbench", "--root", "."]))
+        else {
+            panic!("workbench must launch");
+        };
+        assert!(parsed.workbench);
+        assert_eq!(parsed.start.as_deref(), Some(Path::new(".")));
+
+        let Ok(DesktopAction::Launch(parsed)) = parse_desktop_args(args(&["workspace"])) else {
+            panic!("positional root must launch");
+        };
+        assert_eq!(parsed.start.as_deref(), Some(Path::new("workspace")));
+        assert!(!parsed.workbench);
+
+        let Ok(DesktopAction::Launch(parsed)) = parse_desktop_args(args(&[
+            "--mode",
+            "debug",
+            "--lang",
+            "rust",
+            "--model",
+            "daily-free",
+        ])) else {
+            panic!("selectors must launch");
+        };
+        assert_eq!(parsed.mode.as_deref(), Some("debug"));
+        assert_eq!(parsed.lang.as_deref(), Some("rust"));
+        assert_eq!(parsed.model.as_deref(), Some("daily-free"));
+    }
+
+    #[test]
+    fn desktop_rejects_unknown_flags_and_missing_values() {
+        assert_eq!(
+            parse_desktop_args(args(&["--unknown"])),
+            Err("unknown option '--unknown'".to_string())
+        );
+        for flag in ["--root", "--mode", "--lang", "--model"] {
+            assert_eq!(
+                parse_desktop_args(args(&[flag])),
+                Err(format!("{flag} requires a value"))
+            );
+        }
+    }
 }

@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-workspace:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run strict Clippy
+        run: ulimit -s unlimited && cargo clippy --workspace --all-targets -j 2 -- -D warnings
+      - name: Run workspace tests
+        run: ulimit -s unlimited && cargo test --workspace -j 2
+      - name: Build release binaries
+        run: ulimit -s unlimited && cargo build --release -j 2
+      - name: Smoke-test release binaries
+        run: |
+          ./target/release/vibe-assembly.exe --version
+          ./target/release/vibe-assembly-desktop.exe --version
+
+  linux-headless:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Run strict Clippy for headless crates
+        run: cargo clippy -p va-core -p va-harness -p va-cli --all-targets -j 2 -- -D warnings
+      - name: Test headless crates
+        run: cargo test -p va-core -p va-harness -p va-cli -j 2
+      - name: Build release CLI
+        run: cargo build --release -p va-cli -j 2

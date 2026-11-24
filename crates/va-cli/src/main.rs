@@ -73,7 +73,7 @@ enum Command {
     },
     /// Reset volatile .ai/ state to pristine template defaults
     Reset,
-    /// Ensure Vibe Router and workspace readiness with zero-401 handshake
+    /// Ensure Vibe Router and workspace readiness and report authentication status
     Up {
         /// Override hardware profile (auto|vps|portable|workstation)
         #[arg(long)]
@@ -2067,9 +2067,17 @@ fn run_up(root: &Path, profile: Option<&str>, json: bool) -> ExitCode {
             "   {}Router:{}     {}🟢 LIVE ({}){}",
             p.dim, p.reset, p.green, endpoint, p.reset
         );
+        let (auth_message, auth_color) = if auth.is_empty() {
+            (
+                "Open local mode (no token configured; set VIBE_ROUTER_TOKEN if router auth is enabled)",
+                p.yellow,
+            )
+        } else {
+            ("Authenticated (token configured)", p.green)
+        };
         println!(
-            "   {}Handshake:{}  {}Zero-401 authentication token synchronized{}",
-            p.dim, p.reset, p.green, p.reset
+            "   {}Auth:{}       {}{}{}",
+            p.dim, p.reset, auth_color, auth_message, p.reset
         );
         println!(
             "   {}Synergy:{}    {}Vibe-Link active (cost telemetry + failure failover){}",

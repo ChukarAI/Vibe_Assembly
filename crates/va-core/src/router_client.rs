@@ -142,11 +142,15 @@ impl RouterAuth {
     /// the common aliases, so no configuration is required when the gateway
     /// is unauthenticated on localhost.
     pub fn from_env() -> Self {
+        Self::from_env_values(|key| std::env::var(key).ok())
+    }
+
+    fn from_env_values(get: impl Fn(&str) -> Option<String>) -> Self {
         let pick = |keys: &[&str]| -> Option<String> {
             keys.iter()
-                .find_map(|k| std::env::var(k).ok())
-                .map(|v| v.trim().to_string())
-                .filter(|v| !v.is_empty())
+                .find_map(|key| get(key))
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty())
         };
         Self {
             bearer: pick(&[
@@ -158,45 +162,29 @@ impl RouterAuth {
         }
     }
 
-    /// Auto-handshake: check environment first, then search for local token files.
+    /// Auto-handshake: check environment first, then optional legacy token files.
     pub fn discover(workspace_root: Option<&Path>) -> Self {
-        let from_env = Self::from_env();
+        Self::discover_with_env(workspace_root, |key| std::env::var(key).ok())
+    }
+
+    fn discover_with_env(
+        workspace_root: Option<&Path>,
+        get: impl Fn(&str) -> Option<String>,
+    ) -> Self {
+        let from_env = Self::from_env_values(get);
         if !from_env.is_empty() {
             return from_env;
         }
 
-        let mut candidates = Vec::new();
-        if let Some(root) = workspace_root {
-            candidates.push(root.join(".vibe_router_token"));
-            candidates.push(root.join(".ai").join(".vibe_router_token"));
-            candidates.push(root.join("portable_data").join(".vibe_router_token"));
-        }
-        if let Ok(userprofile) = std::env::var("USERPROFILE") {
-            candidates.push(PathBuf::from(userprofile).join(".vibe_router_token"));
-        }
-        if let Ok(home) = std::env::var("HOME") {
-            candidates.push(PathBuf::from(&home).join(".vibe_router_token"));
-            candidates.push(
-                PathBuf::from(&home)
-                    .join(".config")
-                    .join("vibe_router")
-                    .join("token"),
-            );
-        }
-
-        for path in candidates {
-            if let Ok(token) = std::fs::read_to_string(&path) {
-                let trimmed = token.trim().to_string();
-                if !trimmed.is_empty() {
-                    return Self {
-                        bearer: Some(trimmed),
-                        api_key: None,
-                    };
-                }
-            }
-        }
-
-        from_env
+        let from_legacy = legacy_token_path(workspace_root)
+            .and_then(|path| std::fs::read_to_string(path).ok())
+            .map(|token| token.trim().to_string())
+            .filter(|token| !token.is_empty())
+            .map(|token| Self {
+                bearer: Some(token),
+                api_key: None,
+            });
+        from_legacy.unwrap_or(from_env)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -219,6 +207,35 @@ impl RouterAuth {
         }
         h
     }
+}
+
+fn legacy_token_path(workspace_root: Option<&Path>) -> Option<PathBuf> {
+    let mut candidates = Vec::new();
+    if let Some(root) = workspace_root {
+        candidates.push(root.join(".vibe_router_token"));
+        candidates.push(root.join(".ai").join(".vibe_router_token"));
+        candidates.push(root.join("portable_data").join(".vibe_router_token"));
+    }
+    if let Ok(userprofile) = std::env::var("USERPROFILE") {
+        candidates.push(PathBuf::from(userprofile).join(".vibe_router_token"));
+    }
+    if let Ok(home) = std::env::var("HOME") {
+        candidates.push(PathBuf::from(&home).join(".vibe_router_token"));
+        candidates.push(
+            PathBuf::from(&home)
+                .join(".config")
+                .join("vibe_router")
+                .join("token"),
+        );
+    }
+    candidates
+        .into_iter()
+        .filter(|path| path.is_file())
+        .find(|path| {
+            std::fs::read_to_string(path)
+                .map(|token| !token.trim().is_empty())
+                .unwrap_or(false)
+        })
 }
 
 /// A single OpenAI-compatible chat message.
@@ -1095,17 +1112,49 @@ mod tests {
     }
 
     #[test]
-    fn local_shared_token_file_discovery() {
-        let temp = std::env::temp_dir().join("va_test_token_discovery");
-        let _ = std::fs::create_dir_all(&temp);
-        let token_file = temp.join(".vibe_router_token");
-        std::fs::write(&token_file, "secret-auto-handshake-token-123\n").unwrap();
+    fn legacy_token_file_discovery_is_a_fallback_only() {
+        let temp = std::env::temp_dir().join(format!(
+            "va_test_token_discovery_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&temp).unwrap();
+        std::fs::write(temp.join(".vibe_router_token"), "legacy-token\n").unwrap();
 
-        let auth = RouterAuth::discover(Some(&temp));
-        assert_eq!(
-            auth.bearer.as_deref(),
-            Some("secret-auto-handshake-token-123")
-        );
+        let auth = RouterAuth::discover_with_env(Some(&temp), |key| match key {
+            "VIBE_ROUTER_TOKEN" => Some("environment-token".to_string()),
+            "VIBE_ROUTER_API_KEY" => Some("environment-key".to_string()),
+            _ => None,
+        });
+        assert_eq!(auth.bearer.as_deref(), Some("environment-token"));
+        assert_eq!(auth.api_key.as_deref(), Some("environment-key"));
+
+        let auth = RouterAuth::discover_with_env(Some(&temp), |_| None);
+        assert_eq!(auth.bearer.as_deref(), Some("legacy-token"));
+        assert_eq!(auth.api_key, None);
+
+        let _ = std::fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn legacy_empty_file_does_not_mask_a_later_candidate() {
+        let temp = std::env::temp_dir().join(format!(
+            "va_test_token_fallback_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(temp.join(".ai")).unwrap();
+        std::fs::write(temp.join(".vibe_router_token"), "  \n").unwrap();
+        std::fs::write(temp.join(".ai/.vibe_router_token"), "later-token\n").unwrap();
+
+        let auth = RouterAuth::discover_with_env(Some(&temp), |_| None);
+        assert_eq!(auth.bearer.as_deref(), Some("later-token"));
 
         let _ = std::fs::remove_dir_all(&temp);
     }

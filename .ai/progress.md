@@ -4,6 +4,13 @@
 
 - **v2.0.0 Production Hardening and Feature Completion (ADR-018)**
 - Status: implementation complete; final verification gates green.
+- **v2.5.3 (2026-11-24):** CI and ecosystem alignment - GitHub Actions runs
+  the full Windows workspace plus a headless Linux core/harness/CLI job; desktop
+  version/help flags exit before GPUI, all launch options are documented, and
+  unknown flags or missing values fail cleanly; `up` reports credentials or open
+  local mode honestly instead of claiming token synchronization; Liquid Glass
+  prioritizes `daily-free`/`free` router combos with `$0` labels and deduplicates
+  model ids. 305 tests pass; no dependencies added.
 - **v2.0.1 (2026-10-27):** rounded yellow brand icon adopted for the Windows
   executable and the in-app logo; desktop binary rebuilt and release refreshed.
 - **v2.1.0 (2026-10-31):** Paper & Ink redesign applied to the shipped
@@ -88,5 +95,5 @@
 
 - `cargo fmt --all -- --check` - clean
 - `cargo clippy --workspace --all-targets -- -D warnings` - clean
-- `cargo test --workspace` - 298 passed, 0 failed
+- `cargo test --workspace` - 305 passed, 0 failed
 - `cargo build --release` - both binaries produced

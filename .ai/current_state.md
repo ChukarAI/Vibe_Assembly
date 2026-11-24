@@ -1,8 +1,8 @@
 # Current Operational State
 
-- **Active Milestone:** v2.5.2 review, diagnostics, and core hardening
-- **Release:** v2.5.2 - seven root-cause fixes: `review.rs` now creates dangling checkpoints through temporary Git indexes without moving branches or touching the real index, compares worktree trees on unborn branches, and parses unified-diff hunks, `/dev/null` deletions, offsets, counts, and header-like content correctly; `diagnostics.rs` preserves Windows drive-letter paths and message colons; `runtime.rs` requires a directory boundary before portable-path tokenization; `knowledge.rs` fills every missing role with its role-best model; `bootstrap.rs` propagates template reset write failures; empty-worktree deletions remain visible to review.
-- **Current Assignment:** Complete - v2.5.2 hardening finalized for release.
+- **Active Milestone:** v2.5.3 CI, desktop CLI, and router alignment
+- **Release:** v2.5.3 - GitHub Actions runs `windows-workspace` and `linux-headless`; desktop arguments parse before GPUI with early `-V`/`--version`, `-h`/`--help`, complete option help, missing-value rejection, and unknown-flag failure; CLI `up` reports configured authentication or honest open-local mode instead of claiming token synchronization; Liquid Glass prioritizes `daily-free` and `free` router combos with `$0` labels and deduplicates catalogue ids. Router credential discovery remains environment-first with optional legacy token-file fallback. No dependencies added.
+- **Current Assignment:** Complete - v2.5.3 finalized for release.
 - **Planning Status:** Complete.
 - **Implementation Status:**
   - `va-core`: parser, single-writer task lock, allocator, model knowledge,
@@ -43,7 +43,7 @@
     editor and git diff view, an interactive assistant composer, a floating
     command palette, a real context-window meter, a shared native `ui_kit`,
     embedded brand/Windows icon assets, and preview-only design samples.
-- **Verification Status:** 298 tests passing, 0 failed; clippy clean with
+- **Verification Status:** 305 tests passing, 0 failed; clippy clean with
   `-D warnings`; formatting clean; release build produced both binaries.
 - **Resume Anchor:** n/a - wave verified and complete.
 - **Blockers:** None.
