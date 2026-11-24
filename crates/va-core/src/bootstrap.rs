@@ -104,7 +104,7 @@ pub fn reset_template_state(project_dir: &Path) -> Result<(), String> {
     let lock = acquire_task_lock(project_dir, "reset-template-state")?;
     for (filename, content) in pristine_template_files() {
         let p = ai_dir.join(filename);
-        let _ = fs::write(&p, content);
+        fs::write(&p, content).map_err(|e| format!("Failed to reset {}: {e}", p.display()))?;
     }
     lock.release();
     Ok(())
@@ -278,6 +278,21 @@ mod tests {
         reset_template_state(&temp_dir).expect("must reset successfully");
         let content = fs::read_to_string(ai.join("active_task.md")).unwrap();
         assert!(content.contains("First Feature"));
+
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn reset_reports_template_write_failures() {
+        let temp_dir = std::env::temp_dir().join("va-bootstrap-test-reset-error");
+        let _ = fs::remove_dir_all(&temp_dir);
+        let ai = temp_dir.join(".ai");
+        fs::create_dir_all(&ai).unwrap();
+        fs::create_dir_all(ai.join("active_task.md")).unwrap();
+
+        let result = reset_template_state(&temp_dir);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("active_task.md"));
 
         let _ = fs::remove_dir_all(&temp_dir);
     }

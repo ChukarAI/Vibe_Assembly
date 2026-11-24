@@ -408,7 +408,11 @@ pub fn auto_combo(models: &[String], baseline: f32) -> Vec<Assignment> {
         .filter(|r| !out.iter().any(|a| a.role == *r))
         .collect();
     for role in missing {
-        if let Some(f) = fitness.first() {
+        if let Some(f) = fitness.iter().max_by(|a, b| {
+            a.score_for(role)
+                .partial_cmp(&b.score_for(role))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        }) {
             out.push(Assignment {
                 role,
                 model: f.model.clone(),
@@ -560,6 +564,20 @@ mod tests {
         let unique: std::collections::HashSet<&str> =
             plan.iter().map(|a| a.model.as_str()).collect();
         assert_eq!(unique.len(), 3, "three models must serve three roles each");
+    }
+
+    #[test]
+    fn auto_combo_gap_fill_uses_the_best_model_for_each_role() {
+        let plan = auto_combo(
+            &["qwen3-coder".to_string(), "gemini-2.0-flash".to_string()],
+            0.5,
+        );
+        let chat = plan.iter().find(|a| a.role == Role::Chat).unwrap();
+        let hermes = plan.iter().find(|a| a.role == Role::Hermes).unwrap();
+        let boss = plan.iter().find(|a| a.role == Role::Boss).unwrap();
+        assert_eq!(chat.model, "gemini-2.0-flash");
+        assert_eq!(hermes.model, "gemini-2.0-flash");
+        assert_eq!(boss.model, "qwen3-coder");
     }
 
     #[test]

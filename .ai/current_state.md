@@ -1,18 +1,8 @@
 # Current Operational State
 
-- **Active Milestone:** v2.5.1 deep-dive hardening of the Vibe Local ecosystem wiring
-- **Release:** v2.5.1 - bug-fix wave on top of v2.5.0: assignment requests default
-  to the public `/v1/assignment` with a 401/404 fallback ladder (the `/api`
-  alias is admin-guarded on the current router); LAN discovery parses Vibe
-  Local's real `http_port` announcement shape and enriches workers via
-  `/v1/models`; the desktop re-probes router liveness at submit time; `up`
-  honors env overrides and spawns loopback-only with the right port; the
-  engine confines patch paths (drive prefixes/ADS), writes atomically, and
-  reports step-cap exhaustion as failure; the sandbox drains pipes
-  concurrently, keeps Windows resolution vars, and allows 300s verifications;
-  MCP tools are workspace-confined, reject ambiguous short hashes, and persist
-  compactions.
-- **Current Assignment:** Complete - v2.5.1 shipped.
+- **Active Milestone:** v2.5.2 review, diagnostics, and core hardening
+- **Release:** v2.5.2 - seven root-cause fixes: `review.rs` now creates dangling checkpoints through temporary Git indexes without moving branches or touching the real index, compares worktree trees on unborn branches, and parses unified-diff hunks, `/dev/null` deletions, offsets, counts, and header-like content correctly; `diagnostics.rs` preserves Windows drive-letter paths and message colons; `runtime.rs` requires a directory boundary before portable-path tokenization; `knowledge.rs` fills every missing role with its role-best model; `bootstrap.rs` propagates template reset write failures; empty-worktree deletions remain visible to review.
+- **Current Assignment:** Complete - v2.5.2 hardening finalized for release.
 - **Planning Status:** Complete.
 - **Implementation Status:**
   - `va-core`: parser, single-writer task lock, allocator, model knowledge,
@@ -53,7 +43,7 @@
     editor and git diff view, an interactive assistant composer, a floating
     command palette, a real context-window meter, a shared native `ui_kit`,
     embedded brand/Windows icon assets, and preview-only design samples.
-- **Verification Status:** 283 tests passing, 0 failed; clippy clean with
+- **Verification Status:** 298 tests passing, 0 failed; clippy clean with
   `-D warnings`; formatting clean; release build produced both binaries.
 - **Resume Anchor:** n/a - wave verified and complete.
 - **Blockers:** None.

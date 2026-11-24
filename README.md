@@ -9,14 +9,14 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-3B82F6?style=flat-square)](LICENSE)
 
 
-**v2.5.1 - a production-hardened, pure-Rust multi-agent coding workspace closing the ChukarAI ecosystem triangle: Vibe Local zero-cost inference (127.0.0.1:20129) and LAN Pocket Workers (UDP :20131) are discovered, merged into the Liquid Glass model menu, and driven directly when the router is offline, with live tok/s and backend telemetry. This patch hardens the ecosystem wire contract (public assignment endpoint, real UDP announcement shape), sandbox execution, MCP confinement, and desktop router liveness.**
+**v2.5.2 - a production-hardened, pure-Rust multi-agent coding workspace closing the ChukarAI ecosystem triangle: Vibe Local zero-cost inference (127.0.0.1:20129) and LAN Pocket Workers (UDP :20131) are discovered, merged into the Liquid Glass model menu, and driven directly when the router is offline, with live tok/s and backend telemetry. This patch fixes review checkpoints that polluted the real Git index/branch, hunk-aware and unborn/`/dev/null` diff handling, Windows diagnostic paths, portable path boundaries, auto-combo role selection, and template-reset error reporting.**
 
 Vibe Assembly lets small, focused agents build and maintain large software
 projects without exhausting a single chat context. Roles communicate through a
 regulated `.ai/` contract, and every edit passes through a deterministic,
 hash-anchored execution harness.
 
-**Current status:** 283 tests passing, clippy clean with `-D warnings`, both
+**Current status:** 298 tests passing, clippy clean with `-D warnings`, both
 release binaries build. There is no browser runtime, webview, or Node/npm
 toolchain.
 
@@ -272,7 +272,7 @@ live in `.ai/EXPERIENCE.md`; the trajectory DAG lives in `.ai/session.jsonl`.
 | `patcher` | Edits address per-block hashes, never line numbers. Whole-file drift assertion, 1-hop recovery, and hard rejection of ambiguous or repeated anchors |
 | `repomap` | Token-budgeted workspace symbol scanner binding functions, structs, traits, and classes to deterministic block hashes |
 | `diagnostics` | Dual-format compiler pinpointer (`cargo --message-format=json` and text) mapping error spans to block hashes and snippets |
-| `review` | Git checkpoint per phase, isolating each step's exact delta |
+| `review` | Git checkpoints via temporary indexes and dangling commits (no branch/index pollution), tree-vs-tree deltas including unborn branches and deletions, and hunk-aware unified-diff parsing |
 | `judge` | Deterministic gate: slop comments, placeholders, unsafe primitives in production, import-only churn, excessive churn, trailing whitespace, plus language and mode guardrails. One targeted retry, then abort |
 | `sandbox` | Confined command execution with wall-clock timeouts, directory confinement, and bounded output |
 | `tournament` | Multi-branch speculative runner scoring candidates by warnings and line churn, merging the winner into the DAG |
@@ -414,7 +414,7 @@ cargo test --workspace
 cargo build --release
 ```
 
-Current workspace: **283 tests passing**, clippy clean, both release binaries
+Current workspace: **298 tests passing**, clippy clean, both release binaries
 built. The live HTTP planner is tested against a local mock OpenAI-compatible
 TCP server; unit tests cover compaction, think-trace eviction, observation
 slicing, repeated anchors, read-only enforcement, stagnation escalation,

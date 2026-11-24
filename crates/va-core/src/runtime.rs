@@ -300,6 +300,9 @@ pub fn to_portable_path(path: &Path, root: &Path) -> String {
     }
 
     if let Some(rel) = norm_path.strip_prefix(norm_root_trimmed) {
+        if !rel.is_empty() && !rel.starts_with('/') {
+            return norm_path;
+        }
         let clean_rel = rel.trim_start_matches('/');
         format!("{PORTABLE_ROOT_TOKEN}/{clean_rel}")
     } else {
@@ -436,6 +439,19 @@ mod tests {
         assert_eq!(resolved, new_host_root.join(".ai").join("active_task.md"));
 
         let _ = std::fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn test_portable_path_requires_a_root_path_boundary() {
+        let root = Path::new("Q:/Vibe Coding/Vibe Assembly");
+        let sibling = Path::new("Q:/Vibe Coding/Vibe Assembly2/file.rs");
+        let inside = Path::new("Q:/Vibe Coding/Vibe Assembly/src/lib.rs");
+
+        assert_eq!(to_portable_path(sibling, root), sibling.to_string_lossy());
+        assert_eq!(
+            to_portable_path(inside, root),
+            format!("{PORTABLE_ROOT_TOKEN}/src/lib.rs")
+        );
     }
 
     #[test]

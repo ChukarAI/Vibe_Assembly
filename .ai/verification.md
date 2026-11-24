@@ -1,17 +1,27 @@
 # Verification Record & Proven Baselines
 
-**Current feature proven:** v2.5.1 deep-dive hardening - public assignment
-endpoint ladder, real Vibe Local UDP announcement parsing + HTTP enrichment,
-submit-time router liveness, sandbox pipe-drain/whitelist/timeout fixes,
-engine confinement/atomicity/step-cap honesty, and MCP confinement,
-persistence, and ambiguity fixes
+**Current feature proven:** v2.5.2 hardening - non-polluting Git review
+checkpoints, tree-vs-tree unborn/deletion diffs, hunk-aware unified-diff parsing,
+Windows drive-letter diagnostic paths, portable-path boundaries, role-best
+auto-combo gap filling, and template reset write-error propagation
 
 **Test suites and checks executed:**
 
 - [x] `cargo fmt --all -- --check`
 - [x] `cargo clippy --workspace --all-targets -- -D warnings`
-- [x] `cargo test --workspace` - 283 passed, 0 failed
+- [x] `cargo test --workspace` - 298 passed, 0 failed
 - [x] `cargo build --release` - `vibe-assembly` and `vibe-assembly-desktop`
+- [x] Review checkpoint preserves branch HEAD, commit count, real index, and
+      working-tree status; checkpoints work on unborn branches
+- [x] Review tree-vs-tree diffs include all deletions to an empty worktree and
+      preserve `/dev/null` file paths
+- [x] Unified-diff hunk offsets/counts, omitted counts, header-like added
+      content, and no-newline markers parse correctly
+- [x] Compiler diagnostics preserve Windows drive-letter paths, forward-slash
+      paths, and colons in messages
+- [x] Portable-path tokenization rejects sibling paths with textual prefixes
+- [x] Auto-combo gap fill chooses each missing role's best model
+- [x] Template reset propagates file-write failures with the affected filename
 - [x] Desktop smoke test - a bare launch of the release binary installed at
       `target/release` opens the Liquid Glass workbench in the persisted theme;
       `--workbench` opens the Paper & Ink workspace workbench
@@ -89,4 +99,4 @@ persistence, and ambiguity fixes
 - State: `.ai/*.md` and `.ai/session.jsonl`
 - Router: local OpenAI-compatible HTTP gateway
 
-**Last date proven working:** 2026-11-18
+**Last date proven working:** 2026-11-24

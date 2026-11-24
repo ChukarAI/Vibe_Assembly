@@ -312,26 +312,37 @@ fn parse_error_header(line: &str) -> (String, Option<String>, String) {
     (level, code, msg)
 }
 
+/// Parse `path:line[:col]` from the right so Windows drive letters
+/// (`C:\repo\src\lib.rs:10:5`) and colons in paths survive.
 fn parse_file_line_col(s: &str) -> Option<(PathBuf, usize)> {
-    let parts: Vec<&str> = s.split(':').collect();
-    if parts.len() >= 2 {
-        let path = PathBuf::from(parts[0]);
-        let line = parts[1].parse::<usize>().ok()?;
-        Some((path, line))
-    } else {
-        None
+    let (rest, _col) = s.rsplit_once(':')?;
+    let (path, line) = rest.rsplit_once(':')?;
+    if path.is_empty() {
+        return None;
     }
+    let line = line.trim().parse::<usize>().ok()?;
+    Some((PathBuf::from(path.trim()), line))
 }
 
+/// Parse `path:line[:col]: level: message` (rustc-style inline diagnostics).
+/// Splitting from the right keeps `C:\...` drive letters and colons inside
+/// the message intact.
 fn parse_inline_file_line(line: &str) -> Option<(PathBuf, usize, String, String)> {
-    let parts: Vec<&str> = line.split(':').collect();
-    if parts.len() >= 4 {
-        let line_num = parts[1].trim().parse::<usize>().ok()?;
-        let path = PathBuf::from(parts[0].trim());
-        let level = parts[3].trim().to_lowercase();
-        if level == "error" || level == "warning" {
-            let msg = parts[4..].join(":").trim().to_string();
-            return Some((path, line_num, level, msg));
+    // The level token is the last `: error:`/`: warning:` boundary before
+    // the message; find it from the right so messages may contain colons.
+    let (prefix, level, msg) = find_level_boundary(line)?;
+    let (path, line_num) = parse_file_line_col(prefix.trim())?;
+    Some((path, line_num, level, msg))
+}
+
+/// Split `...: error: message` into (prefix, level, message) using the
+/// right-most level boundary.
+fn find_level_boundary(line: &str) -> Option<(&str, String, String)> {
+    for level in ["error", "warning"] {
+        let needle = format!(": {level}:");
+        if let Some(pos) = line.rfind(&needle) {
+            let msg = line[pos + needle.len()..].trim().to_string();
+            return Some((line[..pos].trim(), level.to_string(), msg));
         }
     }
     None
@@ -345,4 +356,45 @@ fn extract_block_snippet(content: &str, block: &Block) -> String {
     let start = block.start_line - 1;
     let end = block.end_line.min(lines.len());
     lines[start..end].join("\n")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_windows_drive_letter_span_paths() {
+        let parsed = parse_file_line_col(r"C:\work\repo\src\lib.rs:42:5").unwrap();
+        assert_eq!(parsed, (PathBuf::from(r"C:\work\repo\src\lib.rs"), 42));
+    }
+
+    #[test]
+    fn parses_windows_drive_letter_inline_diagnostics() {
+        let (path, line, level, message) =
+            parse_inline_file_line(r"C:\work\repo\src\lib.rs:10:3: error: boom").unwrap();
+        assert_eq!(path, PathBuf::from(r"C:\work\repo\src\lib.rs"));
+        assert_eq!(line, 10);
+        assert_eq!(level, "error");
+        assert_eq!(message, "boom");
+    }
+
+    #[test]
+    fn parses_windows_forward_slash_inline_diagnostics() {
+        let (path, line, level, message) =
+            parse_inline_file_line("C:/work/repo/src/lib.rs:10:3: warning: careful").unwrap();
+        assert_eq!(path, PathBuf::from("C:/work/repo/src/lib.rs"));
+        assert_eq!(line, 10);
+        assert_eq!(level, "warning");
+        assert_eq!(message, "careful");
+    }
+
+    #[test]
+    fn parses_relative_inline_diagnostics_with_colons_in_message() {
+        let (path, line, level, message) =
+            parse_inline_file_line("src/lib.rs:10:3: error: expected: Token").unwrap();
+        assert_eq!(path, PathBuf::from("src/lib.rs"));
+        assert_eq!(line, 10);
+        assert_eq!(level, "error");
+        assert_eq!(message, "expected: Token");
+    }
 }

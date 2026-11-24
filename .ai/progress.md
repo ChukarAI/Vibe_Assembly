@@ -44,6 +44,14 @@
   sandbox pipe-drain/whitelist/300s timeout, MCP confinement + ambiguity
   rejection + persisted compaction. Org renamed to ChukarAI (origin,
   Cargo.toml, README updated).
+- **v2.5.2 (2026-11-24):** seven root-cause hardening fixes: Git review checkpoints
+  use temporary indexes and dangling commits without branch/index pollution;
+  tree-vs-tree review deltas support unborn branches and deletions; unified-diff
+  parsing is hunk-aware, offset/count correct, `/dev/null` aware, and does not
+  confuse content with headers; Windows drive-letter compiler diagnostics parse
+  correctly; portable-path tokenization requires a directory boundary;
+  auto-combo fills missing roles with the role-best model; template reset write
+  failures propagate. 298 tests pass; no dependencies added.
 - Scope: real HTTP live planner, four execution modes with dynamic accents,
   language lens, auto-compaction at 75%, think-trace eviction, pinned working
   set, repeated-anchor rejection, spin-loop breaker, durable EXPERIENCE.md,
@@ -80,5 +88,5 @@
 
 - `cargo fmt --all -- --check` - clean
 - `cargo clippy --workspace --all-targets -- -D warnings` - clean
-- `cargo test --workspace` - 283 passed, 0 failed
+- `cargo test --workspace` - 298 passed, 0 failed
 - `cargo build --release` - both binaries produced
