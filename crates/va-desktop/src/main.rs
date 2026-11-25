@@ -11,6 +11,7 @@ mod command_palette;
 mod design;
 mod editor_pane;
 mod left_dock;
+mod overlay;
 mod spell;
 mod state;
 mod theme;
@@ -34,6 +35,7 @@ struct DesktopArgs {
     start: Option<PathBuf>,
     sample: Option<Sample>,
     workbench: bool,
+    overlay_demo: bool,
     mode: Option<String>,
     lang: Option<String>,
     model: Option<String>,
@@ -58,6 +60,7 @@ Options:
       --design-preview-studio      Open the Studio preview
       --design-preview-glass       Open the Liquid Glass preview
       --workbench                  Open the workspace editor workbench
+      --overlay-demo               Play the non-mutating yellow cursor overlay demo
       --root <PATH>                Workspace root (discovered upward)
       --mode <MODE>                Initial mode: code, web, chat, debug
       --lang <LANG>                Initial language: auto, rust, c, python, ts, go
@@ -88,6 +91,7 @@ fn parse_desktop_args(args: impl IntoIterator<Item = String>) -> Result<DesktopA
             "--design-preview-studio" => parsed.sample = Some(Sample::Studio),
             "--design-preview-glass" => parsed.sample = Some(Sample::Glass),
             "--workbench" => parsed.workbench = true,
+            "--overlay-demo" => parsed.overlay_demo = true,
             "--root" => {
                 let value = option_value(&mut args, "--root")?;
                 parsed.start = Some(PathBuf::from(value));
@@ -124,6 +128,14 @@ fn main() {
         }
         DesktopAction::Launch(args) => args,
     };
+
+    if args.overlay_demo {
+        if let Err(error) = crate::overlay::run_overlay_demo() {
+            eprintln!("vibe-assembly-desktop: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
 
     if let Some(mode) = args.mode {
         std::env::set_var("VIBE_MODE", mode);
@@ -328,6 +340,7 @@ mod tests {
             "--design-preview-studio",
             "--design-preview-glass",
             "--workbench",
+            "--overlay-demo",
             "--root",
             "--mode",
             "--lang",
@@ -366,6 +379,17 @@ mod tests {
         assert_eq!(parsed.mode.as_deref(), Some("debug"));
         assert_eq!(parsed.lang.as_deref(), Some("rust"));
         assert_eq!(parsed.model.as_deref(), Some("daily-free"));
+    }
+
+    #[test]
+    fn desktop_overlay_demo_parses_without_launching_gpui() {
+        let Ok(DesktopAction::Launch(parsed)) = parse_desktop_args(args(&["--overlay-demo"]))
+        else {
+            panic!("overlay demo must launch");
+        };
+        assert!(parsed.overlay_demo);
+        assert!(!parsed.workbench);
+        assert!(parsed.start.is_none());
     }
 
     #[test]

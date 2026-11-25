@@ -9,14 +9,14 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-3B82F6?style=flat-square)](LICENSE)
 
 
-**v2.5.3 - a production-hardened, pure-Rust multi-agent coding workspace closing the ChukarAI ecosystem triangle: Vibe Local zero-cost inference (127.0.0.1:20129) and LAN Pocket Workers (UDP :20131) are discovered, merged into the Liquid Glass model menu, and driven directly when the router is offline, with live tok/s and backend telemetry. GitHub Actions now verifies the full Windows workspace plus a headless Linux core/harness/CLI matrix. Desktop `--version` and `--help` exit before GPUI starts and unknown flags fail cleanly; router authentication reporting is based on discovered credentials, and `daily-free` / `free` router combos lead the model catalogue with honest labels.**
+**v2.6.0 - a production-hardened, pure-Rust multi-agent coding workspace closing the ChukarAI ecosystem triangle: Vibe Local zero-cost inference (127.0.0.1:20129) and LAN Pocket Workers (UDP :20131) are discovered, merged into the Liquid Glass model menu, and driven directly when the router is offline, with live tok/s and backend telemetry. Computer Use Phases 1–2 add a native Win32 click-through yellow cursor overlay with Per-Monitor v2 DPI mapping, eased motion, pre-click ring, click squash, fading ribbon trail, reduced-motion support, zero-idle redraws, and an `Esc` kill-switch. The overlay is visual-only: it performs no mouse or keyboard input injection.**
 
 Vibe Assembly lets small, focused agents build and maintain large software
 projects without exhausting a single chat context. Roles communicate through a
 regulated `.ai/` contract, and every edit passes through a deterministic,
 hash-anchored execution harness.
 
-**Current status:** 305 tests passing, clippy clean with `-D warnings`, both
+**Current status:** 323 tests passing, clippy clean with `-D warnings`, both
 release binaries build. GitHub Actions runs the full workspace on Windows and
 the core/harness/CLI crates on headless Linux. There is no browser runtime,
 webview, or Node/npm toolchain.
@@ -133,6 +133,9 @@ cargo run -p va-desktop
 
 # Paper & Ink editor workbench for a workspace
 cargo run -p va-desktop -- --workbench --root . --mode web --lang ts
+
+# Visual-only Computer Use overlay demo (Windows; Esc aborts)
+cargo run -p va-desktop -- --overlay-demo
 ```
 
 `init` and `run --auto-combo` auto-seed `.ai/model_combo.txt` when it is absent.
@@ -167,6 +170,28 @@ corrected on send with a transient "N typos fixed" note, while dictionary-only
 suggestions stay opt-in so names and project jargon are never rewritten
 silently. Code spans, paths, URLs, handles, identifiers, and non-ASCII text are
 left alone.
+
+### Computer Use visual overlay (Phases 1–2)
+
+`vibe-assembly-desktop --overlay-demo` runs a deterministic ~2.5-second Windows
+overlay demo without opening GPUI. A separate native Win32 layered window is
+topmost, click-through, non-activating, and hidden from Alt-Tab. It draws the
+brand-yellow agent cursor with a dark outline, eased movement, a pre-click ring,
+click squash, and a fading ribbon trail while leaving the native OS cursor
+visible and untouched.
+
+Coordinates are treated as untrusted screenshot-space values, scaled with the
+capture/monitor DPI factor, offset to physical monitor pixels, and clamped to
+monitor bounds. The supplied rounded cursor assets are yellow with a soft cursor
+halo, click rays, and a subtle yellow screen-edge glow. Rendering uses a pure Rust
+premultiplied BGRA buffer presented through `UpdateLayeredWindow`; active redraws
+are capped at 60 fps and idle state burns zero frames. Windows reduced-motion preferences disable the trail, and
+`Esc` or the shared atomic kill-switch aborts immediately.
+
+This phase is **visual-only**. It contains no `SendInput`, mouse synthesis, or
+keyboard synthesis. Phases 3–5 (action protocol/input injection, per-app
+approval and takeover gates, and screenshot transcript stream) are not
+implemented.
 
 ### Paper & Ink editor workbench
 
@@ -432,16 +457,19 @@ and excludes Windows-targeted GPUI on Linux, where `va-core`, `va-harness`, and
 `va-cli` are checked and tested headlessly. On Windows with limited resources,
 append `-j 2` to Cargo commands.
 
-Current workspace: **305 tests passing**, clippy clean, both release binaries
+Current workspace: **323 tests passing**, clippy clean, both release binaries
 built. GitHub Actions verifies the Windows workspace and the headless Linux
 core/harness/CLI crates. The live HTTP planner is tested against a local mock
 OpenAI-compatible TCP server; unit tests cover compaction, think-trace eviction,
 observation slicing, repeated anchors, read-only enforcement, stagnation
 escalation, language detection, `EXPERIENCE.md` round-tripping, desktop CLI
-parsing/early exits, and the desktop workbench (real block hashes,
-mode/language/model cycling, read-only Chat, dock toggles, composer submission,
-curated and dictionary-backed prompt typo detection, persisted theme
-preferences, search filtering/ranking, and drawer reveal math).
+parsing/early exits, the Computer Use overlay (DPI conversion, eased motion,
+pre-click/click timing, trail cap/decay/reduced motion/idle, kill-switch,
+premultiplied BGRA invariant, cursor/ring/trail emission), and the desktop
+workbench (real block hashes, mode/language/model cycling, read-only Chat, dock
+toggles, composer submission, curated and dictionary-backed prompt typo
+detection, persisted theme preferences, search filtering/ranking, and drawer
+reveal math).
 
 ## Troubleshooting
 

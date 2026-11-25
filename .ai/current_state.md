@@ -1,8 +1,8 @@
 # Current Operational State
 
-- **Active Milestone:** v2.5.3 CI, desktop CLI, and router alignment
-- **Release:** v2.5.3 - GitHub Actions runs `windows-workspace` and `linux-headless`; desktop arguments parse before GPUI with early `-V`/`--version`, `-h`/`--help`, complete option help, missing-value rejection, and unknown-flag failure; CLI `up` reports configured authentication or honest open-local mode instead of claiming token synchronization; Liquid Glass prioritizes `daily-free` and `free` router combos with `$0` labels and deduplicates catalogue ids. Router credential discovery remains environment-first with optional legacy token-file fallback. No dependencies added.
-- **Current Assignment:** Complete - v2.5.3 finalized for release.
+- **Active Milestone:** v2.6.0 Computer Use Phases 1–2 visual overlay
+- **Release:** v2.6.0 - pure Rust overlay state/DPI/motion engine, premultiplied BGRA rasterizer, native Win32 click-through topmost layered window, brand-yellow cursor/trail/ring/squash, reduced-motion support, zero-idle redraws, shared `Esc` kill-switch, and non-mutating `--overlay-demo`. No OS input injection, no new dependencies; Phases 3–5 action protocol, approvals/takeover, and screenshot transcript stream remain pending.
+- **Current Assignment:** Complete - v2.6.0 Phases 1–2 finalized for release.
 - **Planning Status:** Complete.
 - **Implementation Status:**
   - `va-core`: parser, single-writer task lock, allocator, model knowledge,
@@ -42,8 +42,13 @@
     RepoMap/session-DAG/diagnostics/harness data, an 8-character block-hash
     editor and git diff view, an interactive assistant composer, a floating
     command palette, a real context-window meter, a shared native `ui_kit`,
-    embedded brand/Windows icon assets, and preview-only design samples.
-- **Verification Status:** 305 tests passing, 0 failed; clippy clean with
-  `-D warnings`; formatting clean; release build produced both binaries.
+    embedded brand/Windows icon assets, preview-only design samples, and the
+    Computer Use Phases 1–2 visual overlay (`overlay/model.rs`, `raster.rs`,
+    `win32.rs`) with `--overlay-demo`, DPI mapping, eased yellow cursor/trail,
+    supplied rounded cursor assets, cursor halo/click rays, screen-edge glow,
+    reduced motion, zero-idle frames, and `Esc` abort.
+- **Verification Status:** 323 tests passing, 0 failed; clippy clean with
+  `-D warnings`; formatting clean; release build produced both binaries; native
+  `--overlay-demo` exited cleanly.
 - **Resume Anchor:** n/a - wave verified and complete.
 - **Blockers:** None.

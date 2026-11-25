@@ -1,23 +1,38 @@
 # Verification Record & Proven Baselines
 
-**Current feature proven:** v2.5.3 CI, desktop CLI, and router alignment -
-GitHub Actions Windows/headless-Linux jobs, early desktop version/help exits,
-fail-closed desktop flag parsing, credential-based auth reporting, and
-`daily-free` / `free` combo prioritization with deduplication
+**Current feature proven:** v2.6.0 Computer Use Phases 1–2 - pure overlay state,
+DPI transforms, eased motion, pre-click/click feedback, fading trail,
+premultiplied BGRA rasterizer, native Win32 click-through layered window,
+reduced motion, zero-idle redraws, `Esc` kill-switch, and `--overlay-demo`.
+Visual-only: no OS input injection. Phases 3–5 remain pending.
 
 **Test suites and checks executed:**
 
 - [x] `cargo fmt --all -- --check`
 - [x] `cargo clippy --workspace --all-targets -- -D warnings`
-- [x] `cargo test --workspace` - 305 passed, 0 failed
+- [x] `cargo test --workspace` - 323 passed, 0 failed
 - [x] `cargo build --release` - `vibe-assembly` and `vibe-assembly-desktop`
 - [x] GitHub Actions CI workflow - Windows full workspace with Bash, stable
       Rust fmt/clippy, rust-cache, unlimited stack, release build and both
       executable `--version` smoke tests; Linux headless checks/tests/build for
       `va-core`, `va-harness`, and `va-cli` without GPUI desktop
 - [x] Desktop argument parser - `--version`, `-V`, `--help`, `-h`,
-      `--workbench --root .`, positional root, unknown flags, missing values,
-      and complete help option coverage
+      `--workbench --root .`, positional root, `--overlay-demo`, unknown flags,
+      missing values, and complete help option coverage
+- [x] Overlay model - screenshot-to-screen scaling, mixed-DPI offsets, bounds
+      clamping, 300 ms cubic ease-out with exact endpoints, 200 ms pre-click ring,
+      90 ms click squash, 16-point trail cap, 180 ms alpha decay/width taper,
+      reduced-motion suppression, 1000 ms idle hide, 60 fps cap, zero-idle
+      `needs_frame`, bounded action pill, typing park, hide, shared external
+      kill-switch, and `Abort` command
+- [x] Overlay rasterizer - nonzero cursor/ring/trail/cursor-halo/screen-glow
+      emission, exact tip hotspot, supplied rounded 48 DIP cursor path,
+      premultiplied `R,G,B <= A` invariant, old-frame clearing, and invalid scene
+      rejection
+- [x] Native overlay demo - Per-Monitor v2 context, primary-monitor physical
+      bounds/DPI, click-through topmost non-activating tool window, top-down DIB,
+      `UpdateLayeredWindow`, RAII cleanup, reduced-motion query, `Esc` polling,
+      full ~2.5 s sequence, clean exit, and no OS input injection
 - [x] Router `up` authentication reporting - configured credentials versus
       open local mode based on `auth.is_empty()`; no token-sync claim
 - [x] `daily-free` and `free` catalogue entries are combos first with honest

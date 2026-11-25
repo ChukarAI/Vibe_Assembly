@@ -2631,13 +2631,16 @@ mod tests {
     }
 
     fn state_for(dir: &Path) -> WorkbenchState {
-        WorkbenchState::new(
+        let mut state = WorkbenchState::new(
             Workspace::load(dir),
             None,
             ExecutionMode::Code,
             LanguageLens::Auto,
             "auto-combo".to_string(),
-        )
+        );
+        state.router_endpoint = "127.0.0.1:1".to_string();
+        state.router_live = false;
+        state
     }
 
     #[test]
