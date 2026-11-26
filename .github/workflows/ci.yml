@@ -48,3 +48,16 @@ jobs:
         run: cargo test -p va-core -p va-harness -p va-cli -j 2
       - name: Build release CLI
         run: cargo build --release -p va-cli -j 2
+      - name: Smoke-test Linux CLI
+        run: ./target/release/vibe-assembly --version
+      - name: Package Linux CLI
+        run: |
+          mkdir -p dist
+          cp target/release/vibe-assembly "dist/Vibe Assembly Linux"
+          chmod +x "dist/Vibe Assembly Linux"
+      - name: Upload Linux CLI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vibe-assembly-linux-x86_64
+          path: "dist/Vibe Assembly Linux"
+          if-no-files-found: error
